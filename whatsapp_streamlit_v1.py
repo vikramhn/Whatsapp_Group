@@ -526,6 +526,171 @@ def generate_wordcloud(whatsapp_df):
     st.pyplot(plt)
 
 
+import streamlit as st
+
+def show_top_users_by_messages(whatsapp_df):
+    top_senders = whatsapp_df['sender'].value_counts().head(5)
+
+    st.subheader("Top 5 Users by Number of Messages")
+    st.bar_chart(top_senders)
+
+
+def show_word_count_top_users(whatsapp_df):
+    whatsapp_df['word_count'] = whatsapp_df['message'].apply(lambda x: len(x.split()))
+    word_counts = whatsapp_df.groupby('sender')['word_count'].sum().sort_values(ascending=False).head(5)
+
+    st.subheader("Word Count of Top 5 Users")
+    st.bar_chart(word_counts)
+
+
+def show_one_word_messages_top_users(whatsapp_df):
+    whatsapp_df['is_one_word'] = whatsapp_df['word_count'] == 1
+    one_word_counts = whatsapp_df[whatsapp_df['is_one_word']].groupby('sender').size().sort_values(ascending=False).head(5)
+
+    st.subheader("One-Word Messages by Top 5 Users")
+    st.bar_chart(one_word_counts)
+
+
+import emoji
+
+def show_emoji_usage_top_users(whatsapp_df):
+    whatsapp_df['emoji_count'] = whatsapp_df['message'].apply(lambda x: len([char for char in x if char in emoji.EMOJI_DATA]))
+    max_emojis = whatsapp_df.groupby('sender')['emoji_count'].sum().sort_values(ascending=False).head(5)
+
+    st.subheader("Emoji Usage by Top 5 Users")
+    st.bar_chart(max_emojis)
+
+
+import matplotlib.pyplot as plt
+
+def most_active_time(whatsapp_df):
+    # Convert 'timestamp' column to datetime if it's not already
+    if not pd.api.types.is_datetime64_any_dtype(whatsapp_df['timestamp']):
+        whatsapp_df['timestamp'] = pd.to_datetime(whatsapp_df['timestamp'])
+
+    whatsapp_df['hour'] = whatsapp_df['timestamp'].dt.hour
+    active_hours = whatsapp_df['hour'].value_counts().sort_index()
+
+    st.subheader("Most Active Hours of the Day")
+    plt.figure(figsize=(12, 6))
+    plt.bar(active_hours.index, active_hours.values)
+    plt.xlabel('Hour of the Day')
+    plt.ylabel('Number of Messages')
+    plt.title('Activity by Hour')
+    st.pyplot(plt)
+
+
+def laugh_counter(whatsapp_df):
+    laugh_words = ['lol', 'haha', '😂']
+    whatsapp_df['laugh_count'] = whatsapp_df['message'].apply(lambda x: sum(word in x.lower() for word in laugh_words))
+
+    total_laughs = whatsapp_df['laugh_count'].sum()
+
+    st.subheader("Total 'LOLs' and 'Hahas'")
+    st.write(f"Total LOLs and Hahas in the chat: {total_laughs}")
+
+
+from collections import Counter
+import emoji
+from itertools import chain
+
+
+
+def most_used_emojis(whatsapp_df):
+    def extract_emojis(s):
+        return [c for c in s if c in emoji.EMOJI_DATA]
+
+    all_emojis = list(chain(*whatsapp_df['message'].apply(extract_emojis)))
+    emoji_freq = Counter(all_emojis).most_common(5)
+
+    st.subheader("Top 5 Emojis Used")
+    for item in emoji_freq:
+        st.write(f"{item[0]}: {item[1]} times")
+
+
+import random
+
+import streamlit as st
+
+def mystery_user_challenge(data, sample_size=5):
+    # Select a random subset of messages
+    sample_messages = data.sample(sample_size)
+
+    # Display the challenge
+    st.markdown("### Mystery User Challenge")
+    st.markdown("Guess who sent these messages:")
+
+    # For storing user guesses
+    guesses = []
+
+    for index, row in sample_messages.iterrows():
+        st.markdown(f"Message: '{row['message']}'")
+        # Add a text input for each message for the user to enter their guess
+        guess = st.text_input(f"Guess for message {index+1}", key=f"guess_{index}")
+        guesses.append(guess)
+
+    # Check if all guesses are made
+    if all(guesses):
+        st.markdown("### Your Guesses")
+        for i, guess in enumerate(guesses, 1):
+            st.write(f"Guess for message {i}: {guess}")
+
+# Usage
+#mystery_user_challenge(data)
+
+
+
+from collections import Counter
+import random
+
+def chat_wordle(whatsapp_df):
+    common_words = [word for word, count in Counter(" ".join(whatsapp_df['message']).split()).items() if count > 5]
+    secret_word = random.choice(common_words)
+
+    st.subheader("Chat Wordle")
+    st.write("Guess the common word used in the chat:")
+    user_guess = st.text_input("Enter your guess:")
+
+    if user_guess:
+        if user_guess.lower() == secret_word.lower():
+            st.success("Correct! You guessed the word!")
+        else:
+            st.error("Wrong guess. Try again!")
+
+from textblob import TextBlob
+
+def mood_meter(whatsapp_df):
+    whatsapp_df['sentiment'] = whatsapp_df['message'].apply(lambda x: TextBlob(x).sentiment.polarity)
+    daily_sentiment = whatsapp_df.resample('D', on='timestamp').sentiment.mean()
+
+    st.subheader("Mood Meter Over Time")
+    plt.figure(figsize=(10, 5))
+    plt.plot(daily_sentiment.index, daily_sentiment.values, marker='o')
+    plt.axhline(y=0, color='gray', linestyle='--')
+    plt.title("Daily Chat Sentiment")
+    plt.xlabel("Date")
+    plt.ylabel("Sentiment Score")
+    st.pyplot(plt)
+
+
+import streamlit as st
+
+def display_big_bold_centered_text(text):
+    st.markdown(f"""
+        <style>
+        .big-font {{
+            font-size:30px !important;
+            font-weight: bold;
+            text-align: center;
+        }}
+        </style>
+        <div class='big-font'>
+            {text}
+        </div>
+        """, unsafe_allow_html=True)
+
+
+
 senti_text = """The visualizations for the sentiment analysis of your WhatsApp chat data provide insights into the emotional tone of the group conversations:
 
 Distribution of Sentiment Polarity:
@@ -606,8 +771,9 @@ def main():
       st.image('assets/streamlit.jpg', width=300)  # Display a logo
       st.write("## Navigation")
       analysis_option = st.selectbox("Choose the Analysis you want to perform",
-                      ["About the App","Show Data","EDA", "Sentiment Analysis", "Topic Analysis","Emojis and Words Analysis", "Forecasting","Alert",
-                       "Transformers-Sentiment Analysis","NER","Summarization","Text Generation","Message Frequency","Wordcloud"])
+                      ["About the App","Show Data","EDA", "Sentiment Analysis","User Analysis","Topic Analysis","Emojis and Words Analysis", "Forecasting","Alert",
+                       "Funny Analysis","Transformers-Sentiment Analysis","NER","Summarization","Text Generation","Message Frequency",
+                       "Challenge","Wordcloud"])
 
 
 
@@ -620,13 +786,35 @@ def main():
 
     if data is not None:
             if analysis_option == "EDA":
+
                 output_placeholder.empty()  # Clear previous output
+                display_big_bold_centered_text("EDA")
                 perform_eda(data)
                 # Call EDA function
                 # eda_function(data)
                 pass
+
+            elif analysis_option == "User Analysis":
+
+                display_big_bold_centered_text("""Detailed User Analysis""")
+                show_top_users_by_messages(data)
+                show_word_count_top_users(data)
+                show_one_word_messages_top_users(data)
+                show_emoji_usage_top_users(data)
+            elif analysis_option == "Funny Analysis":
+                display_big_bold_centered_text("Funny Analysis")
+                most_active_time(data)
+                laugh_counter(data)
+                most_used_emojis(data)
+                mood_meter(data)
+            elif analysis_option == "Challenge":
+                display_big_bold_centered_text("Challenge")
+                mystery_user_challenge(data)
+                chat_wordle(data)
+
             elif analysis_option == "Sentiment Analysis":
                 output_placeholder.empty()  # Clear previous output
+                display_big_bold_centered_text("Sentiment Analysis")
                 perform_date(data)
                 analyzed_data = perform_sentiment_analysis(data)
                 visualize_sentiment_analysis(analyzed_data)
@@ -636,6 +824,7 @@ def main():
                 pass
             elif analysis_option == "Topic Analysis":
                 output_placeholder.empty()  # Clear previous output
+                display_big_bold_centered_text("Topic Analysis")
                 num_topics = st.slider("Select number of topics", 3, 10, 5)
                 lda_model = perform_topic_modeling(data, num_topics=num_topics)
                 visualize_topics(lda_model)
@@ -645,45 +834,57 @@ def main():
                 pass
             elif analysis_option == "Show Messages per User":
                 output_placeholder.empty()  # Clear previous output
+                display_big_bold_centered_text("Show Messages per User")
                 user_messages(data)
 
             elif analysis_option == "Emojis and Words Analysis":
                 output_placeholder.empty()  # Clear previous output
+                display_big_bold_centered_text("Emojis and Words Analysis")
                 processed_word_freq = preprocess_and_extract_words(data)
                 emoji_freq = extract_and_count_emojis(data)
                 visualize_words_and_emojis(processed_word_freq, emoji_freq)
                 st.markdown(emoji_text)
             elif analysis_option == "Forecasting":
                 output_placeholder.empty()  # Clear previous output
+                display_big_bold_centered_text("Forecasting")
                 perform_date(data)
                 forecast_message_trends(data)
                 st.markdown(forecasting_text)
             elif analysis_option == "Alert":
                 output_placeholder.empty()  # Clear previous output
+                display_big_bold_centered_text("Alerts")
                 display_alerts(data)
             elif analysis_option == "Transformers-Sentiment Analysis":
                 output_placeholder.empty()  # Clear previous output
+                display_big_bold_centered_text("Transformers-Sentiment Analysis")
                 transformers_sentiment_analysis(data)
             elif analysis_option == "NER":
                 output_placeholder.empty()  # Clear previous output
+                display_big_bold_centered_text("NER")
                 transformers_ner_analysis(data)
             elif analysis_option == "Summarization":
                 output_placeholder.empty()  # Clear previous output
+                display_big_bold_centered_text("Summarization")
                 transformers_text_summarization(data)
             elif analysis_option == "Text Generation":
                 output_placeholder.empty()  # Clear previous output
+                display_big_bold_centered_text("Text Generation")
                 transformers_text_generation()
             elif analysis_option == "Message Frequency":
                 output_placeholder.empty()  # Clear previous output
+                display_big_bold_centered_text("Message Frequency")
                 message_frequency(data)
             elif analysis_option == "Wordcloud":
                 output_placeholder.empty()  # Clear previous output
+                display_big_bold_centered_text("Wordcloud")
                 generate_wordcloud(data)
                 st.markdown(word_cloud_text)
             elif analysis_option == "Show Data":
-                st.dataframe(data.head(200))
+                display_big_bold_centered_text("Display the datafrrame")
+                st.dataframe(data.head(500))
             elif analysis_option == "About the App":
-                 st.write("""
+                display_big_bold_centered_text("About the App")
+                st.write("""
                           # WhatsApp Chat Analysis App
                           Welcome to the WhatsApp Chat Analysis App! This application offers a range of analytical tools to help you
                           gain insights from your WhatsApp chat data. Here’s what you can do with this app:
