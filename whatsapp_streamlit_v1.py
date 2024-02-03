@@ -881,7 +881,7 @@ def main():
                 st.markdown(word_cloud_text)
             elif analysis_option == "Show Data":
                 display_big_bold_centered_text("Display the datafrrame")
-                st.dataframe(data.head(500))
+                st.dataframe(data.head(40000))
             elif analysis_option == "About the App":
                 display_big_bold_centered_text("About the App")
                 st.write("""
